@@ -1,0 +1,296 @@
+---
+title: "Did Democratic voters or Republican voters experience more difficulty voting in the 2020 election?"
+author: 'Datasci 203: Lab 1'
+output:
+  bookdown::pdf_document2: 
+    toc: false
+---
+
+
+```{r load packages and set options, include=FALSE}
+library(tidyverse) 
+library(magrittr)
+library(knitr)
+library(patchwork)
+library(moments)
+library(haven)
+
+theme_set(theme_bw())
+
+options(tinytex.verbose = TRUE)
+```
+
+```{r load data, echo = FALSE, message = FALSE}
+raw_anes <- read_dta("anes_timeseries_2020_stata_20210719.dta")
+nrow_original <- nrow(raw_anes)
+```
+
+```{r clean data, echo = FALSE}
+anes <- raw_anes %>% 
+  mutate(
+    political_party = case_when(
+      V202443 == 1 ~ 'Democrat', 
+      V202443 == 3 ~ 'Republican',
+      V202443 == 7 ~ 'Other'),
+    pre_registration_status = case_when(
+      V201025x == 1 ~ 'Does not intend to register',
+      V201025x == 2 ~ 'Intends to register',
+      V201025x == 3 ~ 'Registered but did not vote early',
+      V201025x == 4 ~ 'Registered and voted early'),
+    voting_likelihood = V201100,
+    voted_last_time_revised = V201101,
+    voted_last_time = V201102,
+    intent_to_vote = case_when(
+      V201032 == 1 ~ TRUE,
+      V201032 == 2 ~ FALSE),
+    voted_2020 = case_when(
+      V202066 == 1 ~ 'I did not vote',
+      V202066 == 2 ~ 'I thought about voting this time, but didn’t',
+      V202066 == 3 ~ 'I usually vote, but didn’t this time',
+      V202066 == 4 ~ 'I am sure I voted',
+    ),
+    voting_status = case_when(
+      V202068x == 0 ~ 'Not registered and did not vote',
+      V202068x == 1 ~ 'Registered and did not vote',
+      V202068x == 2 ~ 'Voted',
+      TRUE ~ 'N/A'),
+    voted_bool = case_when(
+      V202109x == 0 ~ FALSE,
+      V202109x == 1 ~ TRUE
+    ),
+    reason_not_registered = case_when(
+      V202114a == 1 ~ 'Did not meet registration deadline',
+      V202114b == 1 ~ 'Did not know where or how to register',
+      V202114c == 1 ~ 'Did not meet residency requirements',
+      V202114d == 1 ~ 'Registration form not processed correctly',
+      V202114e == 1 ~ 'Did not have required identification',
+      V202114f == 1 ~ 'Not interested in election',
+      V202114g == 1 ~ 'My vote would not make a difference',
+      V202114h == 1 ~ 'Permanent illness or disability',
+      V202114i == 1 ~ 'Difficulty with English',
+      V202114i == 1 ~ 'Not eligible to vote',
+      V202114k == 1 ~ 'Other'
+    ),
+    difficulty_voting = V202119,
+    voting_problem = case_when(
+      V202120a == 1 ~ 'Registration problem',
+      V202120b == 1 ~ 'Concern about identification card',
+      V202120c == 1 ~ 'Difficulty obtaining absentee ballot',
+      V202120d == 1 ~ 'Confusion about ballot or machine',
+      V202120e == 1 ~ 'Difficulty getting to polling place',
+      V202120f == 1 ~ 'Long wait times',
+      V202120g == 1 ~ 'Work schedule',
+      V202120h == 1 ~ 'Bad weather',
+      V202120i == 1 ~ 'Issue mailing ballot',
+      V202120j == 1 ~ 'Other problem',
+      V202120k == 1 ~ 'No problems at all'
+    ),
+    wait_time = case_when(
+      V202121 == 1 ~ '0 to 15 minutes',
+      V202121 == 2 ~ '16 to 30 minutes',
+      V202121 == 3 ~ '31 to 59 minutes',
+      V202121 == 4 ~ '1 to 2 hours',
+      V202121 == 5 ~ 'more than 2 hours'
+    ),
+    main_reason_not_vote = case_when(
+      V202123 == 1 ~ 'I forgot',
+      V202123 == 2 ~ 'I’m not interested',
+      V202123 == 3 ~ 'Too busy',
+      V202123 == 4 ~ 'Did not like the candidates',
+      V202123 == 5 ~ 'I am not registered',
+      V202123 == 6 ~ 'I did not have the correct form of identification',
+      V202123 == 7 ~ 'Out of town',
+      V202123 == 8 ~ 'Sick or disabled',
+      V202123 == 9 ~ 'Transportation',
+      V202123 == 10 ~ 'Bad weather',
+      V202123 == 11 ~ 'The line at the polls was too long',
+      V202123 == 12 ~ 'I was not allowed to vote at the polls, even though I tried',
+      V202123 == 13 ~ 'I requested but did not receive an absentee ballot',
+      V202123 == 14 ~ 'I did not know where to vote',
+      V202123 == 15 ~ 'I did not feel that I knew enough about the choices'
+    )
+  )
+```
+
+```{r subset to valid values, echo = FALSE}
+anes <- anes %>%
+  filter(
+    !is.na(political_party),
+    political_party != 'Other'
+  ) %>%
+  mutate(
+    political_party = factor(political_party)
+  )
+nrow_valid <- nrow(anes)
+```
+
+```{r create new variables, echo = FALSE}
+anes <- anes %>% 
+  mutate(
+    had_problems = voting_problem != 'No problems at all' & !is.na(voting_problem),
+    failed_to_vote = intent_to_vote & !voted_bool,
+    wait_time_num = case_when(
+      wait_time == '0 to 15 minutes' ~ 0,
+      wait_time == '16 to 30 minutes' ~ 16,
+      wait_time == '31 to 59 minutes' ~ 31,
+      wait_time == '1 to 2 hours' ~ 60,
+      wait_time == 'more than 2 hours' ~ 120
+    )
+  )
+```
+
+# Importance and Context
+
+The issue of voter suppression is extremely important for the current stage of the democracy of the US. In this political climate, the ability to influence the voting turnout for voters of desired party might as well decide the results of election. That's why it's extremely important to prevent legislation that would discriminate against certain classes of population. 
+
+Voter suppression laws differ by state and, in some cases, by county.
+
+Experts debate that the voter suppression against historically marginalized groups in the U.S. is a common and widespread problem right now. Among others they determine following problems:
+
+- voter registration problems
+- voter purging
+- increasing ballot requirements
+- confusing process
+- poll closures and long lines
+
+As a first step, this analysis aims to address the following research question:
+
+\begin{quote}
+  \textit{Did Democratic voters or Republican voters experience more difficulty voting in the 2020 election?}
+\end{quote}
+
+The answer to this question could provide insight into the severity of voter suppression problems and serve as a jumping start for further research. To help us better understand the experience of voting in the 2020 election we will ask following sub-questions:
+
+- Did wait time at the poll differ for Democratic and Republican voters?
+- What is the difference between rate of encountering specific impediments to voting between parties?
+
+# Data and Methodology
+
+Our analysis leverages data from the 2018 American National Election Studies (ANES).  This is an observational dataset, based on a sample of respondents drawn from the YouGov platform. The Yougov panel is not nationally representative, and consists of participants who sign up to complete questionnaires in exchange for rewards.  This dataset includes `r nrow_original` individuals.
+
+As we report in Table \@ref(tab:summary-table), only 44% of ANES respondents of both parties report that they did not experience any difficulty voting in 2020 elections. As the difficulty of voting is subjective and can mean difficult
+things for respondents we're not going to use it for analysis and only present
+here for illustration purposes. Another issue worth noting is that the "difficulty voting" data was gathered only for people who ended up voting so it's subject to "survivorship bias" which is another form of selection bias.
+
+To operationalize the concept of voter difficulty, we will identify individuals in the dataset that experienced problems voting related to the democratic process such as problems with registration and long wait times. Then we will analyze if there is any difference between those numbers for democrats and republicans.
+
+```{r make summary table, echo = FALSE} 
+difficulty_voting_table <- anes %>%
+  mutate(
+    print_difficulty_voting = case_when(
+      difficulty_voting == 1 ~ '1. Not difficult at all',
+      difficulty_voting == 2 ~ '2. A little difficult',
+      difficulty_voting == 3 ~ '3. Moderately difficult',
+      difficulty_voting == 4 ~ '4. Very difficult',
+      difficulty_voting == 5 ~ '5. Extremely difficult'
+    )
+  ) %$% 
+  prop.table(
+    table(
+      print_difficulty_voting,
+      political_party
+  ))
+
+did_not_vote_table <- anes %$% 
+  prop.table(
+    table(
+      intent_to_vote,
+      voted_2020
+  ))
+```
+
+
+```{r summary-table, echo = FALSE}
+kable(
+  difficulty_voting_table,
+  digits = 4,
+  caption = 'How difficult it was to vote (self-reported)', 
+  booktabs = TRUE, 
+)
+
+```
+
+The survey includes questions about problems that respondents experienced while
+during 2020 election including: registration problems, long wait lines etc.
+Data is reported on binary scale (1: problem mentioned, 0: not mentioned), and
+the same question is asked to each respondent that voted. People who wanted to vote but didn't end up voting are not presented in the sub-set with problems.
+
+
+```{r party-problems, echo = FALSE, message=FALSE}
+problems_plot <- anes %>%
+  ggplot(aes(x = had_problems)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = "People who experienced problems while voting", 
+    y = 'Count',
+    color = 'Political party')
+```
+
+```{r wait_times, echo = FALSE, message = FALSE}
+wait_times_plot <- anes %>%
+  ggplot(aes(x = wait_time_num)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = 'Wait time at the polling place', 
+    y = 'Count',
+    color = 'Political party')
+```
+
+```{r, echo=FALSE, message = FALSE}
+voter_dropout_plot <- anes %>%
+  ggplot(aes(x = failed_to_vote)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = "Voter dropout", 
+    y = 'Count',
+    color = 'Political party')
+```
+
+
+```{r plots, message = FALSE, echo = FALSE, fig.cap='Voter problems and voter dropout', fig.pos='!b', fig.height = 3}
+(problems_plot | voter_dropout_plot)
+```
+
+The left panel of Figure \@ref(fig:plots)  plots <...> 
+
+To compare the difficulties, we identify the respondents who had problems while voting and respondents who planned on voting but ended up not voting. The right panel of Figure \@ref(fig:plots) shows <...>
+
+Both our grouping variable and our outcome variable are measured at the binary level.  In these circumstances, common tests could include a two-sample proportion test and Fischer's exact test.  We proceed with a two-sample t-test to demonstrate tools used in Datasci 203.  Given the large sample sizes, the loss of accuracy from the t-test will be negligible.  The null hypothesis for the t-test can be expressed as follows:
+
+\begin{quote}
+
+\textbf{Null Hypothesis:} \textit{The probability that a member of democratic party experienced difficulty voting in 2020 election is the same that of republican party.}
+
+\end{quote}
+
+The t-test requires the following assumptions to be true: 
+
+\begin{enumerate}
+  \item \textbf{i.i.d. data}  First, data must be generated via an iid process.  The ANES 2018 pilot uses a panel of individuals from the YouGov platform. There is a possibility that this introduces dependencies.  For example, participants may tell friends or family members about YouGov, resulting in a cluster of individuals that give similar responses.  Nevertheless, YouGov claims to have millions of users, which suggests that links between individuals should be rare. 
+
+  \item \textbf{Metric scale} A binary variable qualifies as metric as there is only a single interval, which goes from zero to 1.
+  
+  \item \textbf{Sufficient normality} The small number of people who experienced problems <...>  Nevertheless, the large sample size suggests that the sampling distribution of the statistic should be approximately normal via the Central  Limit Theorem. 
+\end{enumerate}
+
+# Results
+
+```{r binomial test, echo=TRUE} 
+test <- t.test(had_problems ~ factor(political_party), data = anes)
+```
+
+The test yields no evidence that there is any difference in perceived voting difficulty between democrats and republicans (t = `r round(test$statistic, 2)`, p = `r round(test$p.value, 2)`).  From a practical perspective, <...>.
+
+Several limitations of our test affect the conclusions that may be drawn from it. <...> Additionally, the ANES data is not nationally representative, suggesting that our results may not generalize to the US population.
+
+# Discussion
+
+This study found evidence <...> Are we measuring propensity to vote or how reliable people from different parties are? We see a correlation here but it doesn't imply causation.
+
+Our results may be of key interest to <...>.
