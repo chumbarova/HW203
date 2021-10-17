@@ -357,8 +357,18 @@ The t-test requires the following assumptions to be true:
 
 # Results
 
-```{r binomial test, echo=TRUE} 
-test <- t.test(had_problems ~ factor(political_party), data = anes)
+```{r tests, echo=TRUE} 
+wait_time_test <- t.test(wait_time_num ~ factor(political_party), data = anes)
+
+travel_time_test <- t.test(travel_time_num ~ factor(political_party), data = anes)
+
+registration_problem_test <- t.test(registration_problem ~ factor(political_party), data = anes)
+
+id_problem_test <- t.test(id_problem ~ factor(political_party), data = anes)
+
+wait_time_problem_test <- t.test(wait_time_problem ~ factor(political_party), data = anes)
+
+absentee_ballot_problem_test <- t.test(absentee_ballot_problem ~ factor(political_party), data = anes)
 ```
 
 The test yields no evidence that there is any difference in perceived voting difficulty between democrats and republicans (t = `r round(test$statistic, 2)`, p = `r round(test$p.value, 2)`).  From a practical perspective, <...>.
