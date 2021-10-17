@@ -21,7 +21,7 @@ options(tinytex.verbose = TRUE)
 ```
 
 ```{r load data, echo = FALSE, message = FALSE}
-raw_anes <- read_dta("anes_timeseries_2020_stata_20210719.dta")
+raw_anes <- read_dta("../anes_timeseries_2020_stata_20210719.dta")
 nrow_original <- nrow(raw_anes)
 ```
 
@@ -58,6 +58,13 @@ anes <- raw_anes %>%
       V202109x == 0 ~ FALSE,
       V202109x == 1 ~ TRUE
     ),
+    registration_deadline_problem = V202114a == 1,
+    registration_confusion_problem = V202114b == 1,
+    registration_residency_problem = V202114c == 1,
+    registration_form_processing_problem = V202114d == 1,
+    registration_id_problem = V202114e == 1,
+    registration_illness_problem = V202114h == 1,
+    registration_english_problem = V202114i == 1,
     reason_not_registered = case_when(
       V202114a == 1 ~ 'Did not meet registration deadline',
       V202114b == 1 ~ 'Did not know where or how to register',
@@ -71,7 +78,29 @@ anes <- raw_anes %>%
       V202114i == 1 ~ 'Not eligible to vote',
       V202114k == 1 ~ 'Other'
     ),
+    travel_time = case_when(
+      V202122 == 1 ~ '0 to 15 minutes',
+      V202122 == 2 ~ '16 to 30 minutes',
+      V202122 == 3 ~ '31 to 59 minutes',
+      V202122 == 4 ~ '1 to 2 hours',
+      V202122 == 5 ~ 'more than 2 hours'
+    ),
+    wait_time = case_when(
+      V202121 == 1 ~ '0 to 15 minutes',
+      V202121 == 2 ~ '16 to 30 minutes',
+      V202121 == 3 ~ '31 to 59 minutes',
+      V202121 == 4 ~ '1 to 2 hours',
+      V202121 == 5 ~ 'more than 2 hours'
+    ),
     difficulty_voting = V202119,
+    voting_registration_problem = V202120a == 1,
+    voting_id_problem = V202120b == 1,
+    voting_absentee_ballot_problem = V202120c == 1,
+    voting_confusion_problem = V202120d == 1,
+    voting_traveling_problem = V202120e == 1,
+    voting_wait_time_problem = V202120f == 1,
+    voting_work_schedule_problem = V202120g == 1,
+    voting_mailing_ballot_problem = V202120i == 1,
     voting_problem = case_when(
       V202120a == 1 ~ 'Registration problem',
       V202120b == 1 ~ 'Concern about identification card',
@@ -85,13 +114,11 @@ anes <- raw_anes %>%
       V202120j == 1 ~ 'Other problem',
       V202120k == 1 ~ 'No problems at all'
     ),
-    wait_time = case_when(
-      V202121 == 1 ~ '0 to 15 minutes',
-      V202121 == 2 ~ '16 to 30 minutes',
-      V202121 == 3 ~ '31 to 59 minutes',
-      V202121 == 4 ~ '1 to 2 hours',
-      V202121 == 5 ~ 'more than 2 hours'
-    ),
+    dropout_registration_problem = V202123 == 5,
+    dropout_id_problem = V202123 == 6,
+    dropout_transportation_problem = V202123 == 9,
+    dropout_wait_time_problem = V202123 == 11,
+    dropout_absentee_ballot_problem = V202123 == 13,
     main_reason_not_vote = case_when(
       V202123 == 1 ~ 'I forgot',
       V202123 == 2 ~ 'I’m not interested',
@@ -128,14 +155,24 @@ nrow_valid <- nrow(anes)
 anes <- anes %>% 
   mutate(
     had_problems = voting_problem != 'No problems at all' & !is.na(voting_problem),
-    failed_to_vote = intent_to_vote & !voted_bool,
     wait_time_num = case_when(
       wait_time == '0 to 15 minutes' ~ 0,
       wait_time == '16 to 30 minutes' ~ 16,
       wait_time == '31 to 59 minutes' ~ 31,
       wait_time == '1 to 2 hours' ~ 60,
       wait_time == 'more than 2 hours' ~ 120
-    )
+    ),
+    travel_time_num = case_when(
+      travel_time == '0 to 15 minutes' ~ 0,
+      travel_time == '16 to 30 minutes' ~ 16,
+      travel_time == '31 to 59 minutes' ~ 31,
+      travel_time == '1 to 2 hours' ~ 60,
+      travel_time == 'more than 2 hours' ~ 120
+    ),
+    registration_problem = dropout_registration_problem | voting_registration_problem,
+    id_problem = dropout_id_problem | voting_id_problem,
+    wait_time_problem = dropout_wait_time_problem | voting_wait_time_problem,
+    absentee_ballot_problem = dropout_absentee_ballot_problem | voting_absentee_ballot_problem
   )
 ```
 
@@ -215,19 +252,6 @@ during 2020 election including: registration problems, long wait lines etc.
 Data is reported on binary scale (1: problem mentioned, 0: not mentioned), and
 the same question is asked to each respondent that voted. People who wanted to vote but didn't end up voting are not presented in the sub-set with problems.
 
-
-```{r party-problems, echo = FALSE, message=FALSE}
-problems_plot <- anes %>%
-  ggplot(aes(x = had_problems)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
-  labs(
-    x = "People who experienced problems while voting", 
-    y = 'Count',
-    color = 'Political party')
-```
-
 ```{r wait_times, echo = FALSE, message = FALSE}
 wait_times_plot <- anes %>%
   ggplot(aes(x = wait_time_num)) +
@@ -240,21 +264,73 @@ wait_times_plot <- anes %>%
     color = 'Political party')
 ```
 
-```{r, echo=FALSE, message = FALSE}
-voter_dropout_plot <- anes %>%
-  ggplot(aes(x = failed_to_vote)) +
+```{r travel_times, echo = FALSE, message = FALSE}
+travel_times_plot <- anes %>%
+  ggplot(aes(x = travel_time_num)) +
   geom_bar(aes(color = political_party), fill = "white",
                 position = "dodge") +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   labs(
-    x = "Voter dropout", 
+    x = 'How long did it take to get the polling place', 
     y = 'Count',
     color = 'Political party')
 ```
 
+```{r registration_problem, echo = FALSE, message=FALSE}
+registration_problem_plot <- anes %>%
+  ggplot(aes(x = registration_problem)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = "People who experienced registration problems", 
+    y = 'Count',
+    color = 'Political party')
+```
 
-```{r plots, message = FALSE, echo = FALSE, fig.cap='Voter problems and voter dropout', fig.pos='!b', fig.height = 3}
-(problems_plot | voter_dropout_plot)
+```{r id_problem, echo = FALSE, message=FALSE}
+id_problem_plot <- anes %>%
+  ggplot(aes(x = id_problem)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = "People who experienced problems with identification", 
+    y = 'Count',
+    color = 'Political party')
+```
+
+```{r wait_time_problem, echo = FALSE, message=FALSE}
+wait_time_problem_plot <- anes %>%
+  ggplot(aes(x = wait_time_problem)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = "People who experienced long wait times", 
+    y = 'Count',
+    color = 'Political party')
+```
+
+```{r absentee_ballot_problem, echo = FALSE, message=FALSE}
+absentee_ballot_problem_plot <- anes %>%
+  ggplot(aes(x = absentee_ballot_problem)) +
+  geom_bar(aes(color = political_party), fill = "white",
+                position = "dodge") +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  labs(
+    x = "People who experienced problems with absentee ballots", 
+    y = 'Count',
+    color = 'Political party')
+```
+
+```{r plots, message = FALSE, echo = FALSE, fig.cap='Waiting and travel times comparison', fig.pos='!b', fig.height = 3}
+(wait_times_plot | travel_times_plot)
+```
+
+
+```{r problems_plots, message = FALSE, echo = FALSE, fig.cap='Comparison by problem', fig.pos='!b', fig.height = 3}
+(registration_problem_plot | id_problem_plot | wait_time_problem_plot | absentee_ballot_problem_plot)
 ```
 
 The left panel of Figure \@ref(fig:plots)  plots <...> 
