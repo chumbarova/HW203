@@ -154,7 +154,7 @@ nrow_valid <- nrow(anes)
 ```{r create new variables, echo = FALSE}
 anes <- anes %>% 
   mutate(
-    had_problems = voting_problem != 'No problems at all' & !is.na(voting_problem),
+    had_problems = as.numeric(voting_problem != 'No problems at all' & !is.na(voting_problem)),
     wait_time_num = case_when(
       wait_time == '0 to 15 minutes' ~ 0,
       wait_time == '16 to 30 minutes' ~ 16,
@@ -211,37 +211,18 @@ here for illustration purposes. Another issue worth noting is that the "difficul
 
 To operationalize the concept of voter difficulty, we will identify individuals in the dataset that experienced problems voting related to the democratic process such as problems with registration and long wait times. Then we will analyze if there is any difference between those numbers for democrats and republicans.
 
-```{r make summary table, echo = FALSE} 
-difficulty_voting_table <- anes %>%
-  mutate(
-    print_difficulty_voting = case_when(
-      difficulty_voting == 1 ~ '1. Not difficult at all',
-      difficulty_voting == 2 ~ '2. A little difficult',
-      difficulty_voting == 3 ~ '3. Moderately difficult',
-      difficulty_voting == 4 ~ '4. Very difficult',
-      difficulty_voting == 5 ~ '5. Extremely difficult'
-    )
-  ) %$% 
-  prop.table(
-    table(
-      print_difficulty_voting,
-      political_party
-  ))
-
-did_not_vote_table <- anes %$% 
-  prop.table(
-    table(
-      intent_to_vote,
-      voted_2020
-  ))
-```
-
-
 ```{r summary-table, echo = FALSE}
+problems_table <- anes %>%
+  group_by(political_party) %>%
+  summarise("Total sample size" = n(),
+            "Registration problems" = sum(registration_problem),
+            "Absentee ballot problems" = sum(absentee_ballot_problem),
+            "Identification problems" =  sum(id_problem))
+
 kable(
-  difficulty_voting_table,
+  t(problems_table),
   digits = 4,
-  caption = 'How difficult it was to vote (self-reported)', 
+  caption = 'Number of people reporting problems', 
   booktabs = TRUE, 
 )
 
@@ -276,61 +257,8 @@ travel_times_plot <- anes %>%
     color = 'Political party')
 ```
 
-```{r registration_problem, echo = FALSE, message=FALSE}
-registration_problem_plot <- anes %>%
-  ggplot(aes(x = registration_problem)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
-  labs(
-    x = "People who experienced registration problems", 
-    y = 'Count',
-    color = 'Political party')
-```
-
-```{r id_problem, echo = FALSE, message=FALSE}
-id_problem_plot <- anes %>%
-  ggplot(aes(x = id_problem)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
-  labs(
-    x = "People who experienced problems with identification", 
-    y = 'Count',
-    color = 'Political party')
-```
-
-```{r wait_time_problem, echo = FALSE, message=FALSE}
-wait_time_problem_plot <- anes %>%
-  ggplot(aes(x = wait_time_problem)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
-  labs(
-    x = "People who experienced long wait times", 
-    y = 'Count',
-    color = 'Political party')
-```
-
-```{r absentee_ballot_problem, echo = FALSE, message=FALSE}
-absentee_ballot_problem_plot <- anes %>%
-  ggplot(aes(x = absentee_ballot_problem)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
-  labs(
-    x = "People who experienced problems with absentee ballots", 
-    y = 'Count',
-    color = 'Political party')
-```
-
 ```{r plots, message = FALSE, echo = FALSE, fig.cap='Waiting and travel times comparison', fig.pos='!b', fig.height = 3}
 (wait_times_plot | travel_times_plot)
-```
-
-
-```{r problems_plots, message = FALSE, echo = FALSE, fig.cap='Comparison by problem', fig.pos='!b', fig.height = 3}
-(registration_problem_plot | id_problem_plot | wait_time_problem_plot | absentee_ballot_problem_plot)
 ```
 
 The left panel of Figure \@ref(fig:plots)  plots <...> 
@@ -371,7 +299,7 @@ wait_time_problem_test <- t.test(wait_time_problem ~ factor(political_party), da
 absentee_ballot_problem_test <- t.test(absentee_ballot_problem ~ factor(political_party), data = anes)
 ```
 
-The test yields no evidence that there is any difference in perceived voting difficulty between democrats and republicans (t = `r round(test$statistic, 2)`, p = `r round(test$p.value, 2)`).  From a practical perspective, <...>.
+The test yields no evidence that there is any difference in perceived voting difficulty between democrats and republicans (t = `r round(wait_time_test$statistic, 2)`, p = `r round(wait_time_test$p.value, 2)`).  From a practical perspective, <...>.
 
 Several limitations of our test affect the conclusions that may be drawn from it. <...> Additionally, the ANES data is not nationally representative, suggesting that our results may not generalize to the US population.
 
