@@ -32,52 +32,6 @@ anes <- raw_anes %>%
       V202443 == 1 ~ 'Democrat', 
       V202443 == 3 ~ 'Republican',
       V202443 == 7 ~ 'Other'),
-    pre_registration_status = case_when(
-      V201025x == 1 ~ 'Does not intend to register',
-      V201025x == 2 ~ 'Intends to register',
-      V201025x == 3 ~ 'Registered but did not vote early',
-      V201025x == 4 ~ 'Registered and voted early'),
-    voting_likelihood = V201100,
-    voted_last_time_revised = V201101,
-    voted_last_time = V201102,
-    intent_to_vote = case_when(
-      V201032 == 1 ~ TRUE,
-      V201032 == 2 ~ FALSE),
-    voted_2020 = case_when(
-      V202066 == 1 ~ 'I did not vote',
-      V202066 == 2 ~ 'I thought about voting this time, but didn’t',
-      V202066 == 3 ~ 'I usually vote, but didn’t this time',
-      V202066 == 4 ~ 'I am sure I voted',
-    ),
-    voting_status = case_when(
-      V202068x == 0 ~ 'Not registered and did not vote',
-      V202068x == 1 ~ 'Registered and did not vote',
-      V202068x == 2 ~ 'Voted',
-      TRUE ~ 'N/A'),
-    voted_bool = case_when(
-      V202109x == 0 ~ FALSE,
-      V202109x == 1 ~ TRUE
-    ),
-    registration_deadline_problem = V202114a == 1,
-    registration_confusion_problem = V202114b == 1,
-    registration_residency_problem = V202114c == 1,
-    registration_form_processing_problem = V202114d == 1,
-    registration_id_problem = V202114e == 1,
-    registration_illness_problem = V202114h == 1,
-    registration_english_problem = V202114i == 1,
-    reason_not_registered = case_when(
-      V202114a == 1 ~ 'Did not meet registration deadline',
-      V202114b == 1 ~ 'Did not know where or how to register',
-      V202114c == 1 ~ 'Did not meet residency requirements',
-      V202114d == 1 ~ 'Registration form not processed correctly',
-      V202114e == 1 ~ 'Did not have required identification',
-      V202114f == 1 ~ 'Not interested in election',
-      V202114g == 1 ~ 'My vote would not make a difference',
-      V202114h == 1 ~ 'Permanent illness or disability',
-      V202114i == 1 ~ 'Difficulty with English',
-      V202114i == 1 ~ 'Not eligible to vote',
-      V202114k == 1 ~ 'Other'
-    ),
     travel_time = case_when(
       V202122 == 1 ~ '0 to 15 minutes',
       V202122 == 2 ~ '16 to 30 minutes',
@@ -140,6 +94,8 @@ anes <- raw_anes %>%
 ```
 
 ```{r subset to valid values, echo = FALSE}
+# Filter out respondents without political party or Independent.
+# We're only interested in Democrats and Republicans.
 anes <- anes %>%
   filter(
     !is.na(political_party),
@@ -154,15 +110,14 @@ nrow_valid <- nrow(anes)
 ```{r create new variables, echo = FALSE}
 anes <- anes %>% 
   mutate(
-    had_problems = as.numeric(voting_problem != 'No problems at all' & !is.na(voting_problem)),
-    wait_time_num = case_when(
+    wait_time_min = case_when(
       wait_time == '0 to 15 minutes' ~ 0,
       wait_time == '16 to 30 minutes' ~ 16,
       wait_time == '31 to 59 minutes' ~ 31,
       wait_time == '1 to 2 hours' ~ 60,
       wait_time == 'more than 2 hours' ~ 120
     ),
-    travel_time_num = case_when(
+    travel_time_min = case_when(
       travel_time == '0 to 15 minutes' ~ 0,
       travel_time == '16 to 30 minutes' ~ 16,
       travel_time == '31 to 59 minutes' ~ 31,
@@ -171,16 +126,13 @@ anes <- anes %>%
     ),
     registration_problem = dropout_registration_problem | voting_registration_problem,
     id_problem = dropout_id_problem | voting_id_problem,
-    wait_time_problem = dropout_wait_time_problem | voting_wait_time_problem,
     absentee_ballot_problem = dropout_absentee_ballot_problem | voting_absentee_ballot_problem
   )
 ```
 
 # Importance and Context
 
-The issue of voter suppression is extremely important for the current stage of the democracy of the US. In this political climate, the ability to influence the voting turnout for voters of desired party might as well decide the results of election. That's why it's extremely important to prevent legislation that would discriminate against certain classes of population. 
-
-Voter suppression laws differ by state and, in some cases, by county.
+The issue of voter suppression is extremely important for the current stage of the democracy in the U.S. In this political climate, the ability to influence the voting turnout for voters of desired party might as well decide the results of election. That's why it's extremely important to prevent legislation that would discriminate against certain categories of population. 
 
 Experts debate that the voter suppression against historically marginalized groups in the U.S. is a common and widespread problem right now. Among others they determine following problems:
 
@@ -190,55 +142,97 @@ Experts debate that the voter suppression against historically marginalized grou
 - confusing process
 - poll closures and long lines
 
-As a first step, this analysis aims to address the following research question:
+As a first step for addressing this concern, this analysis aims to address the following research question:
 
 \begin{quote}
   \textit{Did Democratic voters or Republican voters experience more difficulty voting in the 2020 election?}
 \end{quote}
 
-The answer to this question could provide insight into the severity of voter suppression problems and serve as a jumping start for further research. To help us better understand the experience of voting in the 2020 election we will ask following sub-questions:
+The answer to this question could provide insight into the severity of voter suppression problems and serve as a jumping start for further research. To help us better understand the experience of voting in the 2020 election for members of each party we will ask following sub-questions:
 
-- Did wait time at the poll differ for Democratic and Republican voters?
-- What is the difference between rate of encountering specific impediments to voting between parties?
+- \textit{Did wait time at the poll and travel time to the polling place differ for Democratic and Republican voters?}
+- \textit{Is there any difference in rates of encountering specific impediments to voting between Democrats and Republicans?}
 
 # Data and Methodology
 
-Our analysis leverages data from the 2018 American National Election Studies (ANES).  This is an observational dataset, based on a sample of respondents drawn from the YouGov platform. The Yougov panel is not nationally representative, and consists of participants who sign up to complete questionnaires in exchange for rewards.  This dataset includes `r nrow_original` individuals.
+Our analysis leverages data from the 2018 American National Election Studies (ANES).  This is an observational dataset, based on a sample of respondents drawn from the YouGov platform. The Yougov panel is not nationally representative, and consists of participants who sign up to complete questionnaires in exchange for rewards. This dataset includes `r nrow_original` individuals.
 
-As we report in Table \@ref(tab:summary-table), only 44% of ANES respondents of both parties report that they did not experience any difficulty voting in 2020 elections. As the difficulty of voting is subjective and can mean difficult
-things for respondents we're not going to use it for analysis and only present
-here for illustration purposes. Another issue worth noting is that the "difficulty voting" data was gathered only for people who ended up voting so it's subject to "survivorship bias" which is another form of selection bias.
+The survey includes questions about problems that respondents experienced while
+voting during 2020 election including: registration problems, long wait lines etc.
+Data is reported on binary scale (1: problem mentioned, 0: not mentioned), and
+the same question is asked to each respondent that voted. Similar set of questions asked to each respondent about the reasons that prevented them from voting. Another useful set of data directly related to difficulty voting is the wait time at the polling place and travel time to the polling place. Both of those variables recorded in a range format: 0-15 minutes, 16-30 minutes etc.
 
-To operationalize the concept of voter difficulty, we will identify individuals in the dataset that experienced problems voting related to the democratic process such as problems with registration and long wait times. Then we will analyze if there is any difference between those numbers for democrats and republicans.
-
-```{r summary-table, echo = FALSE}
-problems_table <- anes %>%
-  group_by(political_party) %>%
-  summarise("Total sample size" = n(),
-            "Registration problems" = sum(registration_problem),
-            "Absentee ballot problems" = sum(absentee_ballot_problem),
-            "Identification problems" =  sum(id_problem))
+```{r dropout-reasons, echo = FALSE}
+dropout_table <- anes %$%
+  t(
+    prop.table(
+      table(political_party, main_reason_not_vote)))
 
 kable(
-  t(problems_table),
-  digits = 4,
-  caption = 'Number of people reporting problems', 
-  booktabs = TRUE, 
+  100*dropout_table,
+  digits = 2,
+  caption = 'Main reasons for not voting',
+  booktabs = TRUE
 )
+```
+
+
+```{r voting-problems, echo = FALSE}
+voting_problem_table <- anes %$%
+  t(
+    prop.table(
+      table(political_party, voting_problem)))
+kable(
+  100*voting_problem_table,
+  digits = 2,
+  caption = 'Problems people encountered while voting',
+  booktabs = TRUE
+)
+```
+
+
+It's important to note that ANES includes information on self-reported difficulty voting in 2020 elections. As the difficulty of voting is subjective and can mean different things for each respondent we're not going to use it in this analysis. Another issue worth noting is that the "difficulty voting" data was gathered only for people who ended up voting so it's subject to "survivorship bias" which is another form of selection bias.
+
+To operationalize the concept of voter difficulty, we will analyse 2 categories of data separately. First we will compare wait times at the polls and travel times to the polling place between Democrats and Republicans. Then we will identify individuals in the dataset who experienced problems related to the democratic process: problems with registration, identification problems, problems obtaining absentee ballot. We will compare rates for each of these problems separately.
+
+```{r summary-table, echo = FALSE}
+# summary_table <- anes %>%
+#   group_by(political_party) %>%
+#   summarise("Total sample size" = n(),
+#             "Registration problems" = sum(registration_problem),
+#             "Absentee ballot problems" = sum(absentee_ballot_problem),
+#             "Identification problems" =  sum(id_problem))
+# 
+# kable(
+#   t(summary_table),
+#   digits = 4,
+#   caption = 'Number of people reporting impediments to voting',
+#   booktabs = TRUE
+# )
 
 ```
 
-The survey includes questions about problems that respondents experienced while
-during 2020 election including: registration problems, long wait lines etc.
-Data is reported on binary scale (1: problem mentioned, 0: not mentioned), and
-the same question is asked to each respondent that voted. People who wanted to vote but didn't end up voting are not presented in the sub-set with problems.
+Above tables represent voting problems split by whether respondent successfully voted or did not vote. To improve accuracy and remove selection bias we will pool results together from both groups of people.
+
+For each potential impediment to voting both our grouping variable and our outcome variable are measured at the binary level.  In these circumstances, common tests could include a two-sample proportion test and Fischer's exact test. We proceed with a two-sample t-test to demonstrate tools used in Datasci 203. Given the large sample sizes, the loss of accuracy from the t-test will be negligible. The null hypotheses for the t-test can be expressed as follows:
+
+\begin{quote}
+
+\textbf{Null Hypothesis 1:} \textit{The probability that a member of democratic party experienced difficulty registering in 2020 election is the same that of republican party.}
+
+\textbf{Null Hypothesis 2:} \textit{The probability that a member of democratic party experienced difficulty providing correct identification in 2020 election is the same that of republican party.}
+
+\textbf{Null Hypothesis 3:} \textit{The probability that a member of democratic party experienced difficulty obtaining absentee ballot in 2020 election is the same that of republican party.}
+
+\end{quote}
 
 ```{r wait_times, echo = FALSE, message = FALSE}
 wait_times_plot <- anes %>%
-  ggplot(aes(x = wait_time_num)) +
+  filter(!is.na(wait_time_min)) %>%
+  ggplot(aes(x = wait_time_min)) +
   geom_bar(aes(color = political_party), fill = "white",
                 position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_color_manual(values = c("blue", "red")) +
   labs(
     x = 'Wait time at the polling place', 
     y = 'Count',
@@ -247,67 +241,74 @@ wait_times_plot <- anes %>%
 
 ```{r travel_times, echo = FALSE, message = FALSE}
 travel_times_plot <- anes %>%
-  ggplot(aes(x = travel_time_num)) +
+  filter(!is.na(travel_time_min)) %>%
+  ggplot(aes(x = travel_time_min)) +
   geom_bar(aes(color = political_party), fill = "white",
                 position = "dodge") +
-  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_color_manual(values = c("blue", "red")) +
   labs(
-    x = 'How long did it take to get the polling place', 
+    x = 'Travel time to the polling place', 
     y = 'Count',
     color = 'Political party')
 ```
 
-```{r plots, message = FALSE, echo = FALSE, fig.cap='Waiting and travel times comparison', fig.pos='!b', fig.height = 3}
+```{r plots, message = FALSE, echo = FALSE, fig.cap='Waiting and travel times per political party', fig.pos='!b', fig.height = 3}
 (wait_times_plot | travel_times_plot)
 ```
 
-The left panel of Figure \@ref(fig:plots)  plots <...> 
+The left panel of Figure \@ref(fig:plots) plots amounts of respondents who reported waiting time within a given bracket. The right panel of Figure \@ref(fig:plots) shows similar data for travel time.
 
-To compare the difficulties, we identify the respondents who had problems while voting and respondents who planned on voting but ended up not voting. The right panel of Figure \@ref(fig:plots) shows <...>
-
-Both our grouping variable and our outcome variable are measured at the binary level.  In these circumstances, common tests could include a two-sample proportion test and Fischer's exact test.  We proceed with a two-sample t-test to demonstrate tools used in Datasci 203.  Given the large sample sizes, the loss of accuracy from the t-test will be negligible.  The null hypothesis for the t-test can be expressed as follows:
+To test differences in waiting and travel times we will use the beginning of the time bracket as the data point. Since it's metric data and due to large sample size we can ignore the distribution shape and apply two-sample t-test with following Null Hypotheses:
 
 \begin{quote}
 
-\textbf{Null Hypothesis:} \textit{The probability that a member of democratic party experienced difficulty voting in 2020 election is the same that of republican party.}
+\textbf{Null Hypothesis for waiting time:} \textit{A member of democratic party on average experiences the same waiting time at the polling place as a member of republican party.}
+
+\textbf{Null Hypothesis for traveling time:} \textit{A member of democratic party on average takes the same amount of time to travel to the polling place as a member of republican party.}
 
 \end{quote}
+
 
 The t-test requires the following assumptions to be true: 
 
 \begin{enumerate}
   \item \textbf{i.i.d. data}  First, data must be generated via an iid process.  The ANES 2018 pilot uses a panel of individuals from the YouGov platform. There is a possibility that this introduces dependencies.  For example, participants may tell friends or family members about YouGov, resulting in a cluster of individuals that give similar responses.  Nevertheless, YouGov claims to have millions of users, which suggests that links between individuals should be rare. 
 
-  \item \textbf{Metric scale} A binary variable qualifies as metric as there is only a single interval, which goes from zero to 1.
+  \item \textbf{Metric scale} A binary variable qualifies as metric as there is only a single interval, which goes from zero to 1. Travel and wait times are also metric.
   
-  \item \textbf{Sufficient normality} The small number of people who experienced problems <...>  Nevertheless, the large sample size suggests that the sampling distribution of the statistic should be approximately normal via the Central  Limit Theorem. 
+  \item \textbf{Sufficient normality} The wait and travel times don't have normal distribution. Nevertheless, the large sample size suggests that the sampling distribution of the statistic should be approximately normal via the Central  Limit Theorem. Sample sizes for individual voting problems are also large enough to apply CLT.
 \end{enumerate}
 
 # Results
 
 ```{r tests, echo=TRUE} 
-wait_time_test <- t.test(wait_time_num ~ political_party, data = anes)
+wait_time_test <- t.test(wait_time_min ~ political_party, data = anes)
 
-travel_time_test <- t.test(travel_time_num ~ political_party, data = anes)
+travel_time_test <- t.test(travel_time_min ~ political_party, data = anes)
 
 registration_problem_test <- t.test(registration_problem ~ political_party,
                                     data = anes)
 
 id_problem_test <- t.test(id_problem ~ political_party, data = anes)
 
-wait_time_problem_test <- t.test(wait_time_problem ~ political_party, 
-                                 data = anes)
-
 absentee_ballot_problem_test <- t.test(absentee_ballot_problem ~ political_party,
                                        data = anes)
 ```
 
-The test yields no evidence that there is any difference in perceived voting difficulty between democrats and republicans (t = `r round(wait_time_test$statistic, 2)`, p = `r round(wait_time_test$p.value, 2)`).  From a practical perspective, <...>.
+The test yield evidence that Democrats experience longer wait times (Democrats = `r round(wait_time_test$estimate[1], 2)`, Republicans = `r round(wait_time_test$estimate[2], 2)`, t = `r round(wait_time_test$statistic, 2)`, p = `r wait_time_test$p.value`) and travel times (Democrats = `r round(travel_time_test$estimate[1], 2)`, Republicans = `r round(travel_time_test$estimate[2], 2)`, t = `r round(travel_time_test$statistic, 2)`, p = `r travel_time_test$p.value`) than Republicans.
 
-Several limitations of our test affect the conclusions that may be drawn from it. <...> Additionally, the ANES data is not nationally representative, suggesting that our results may not generalize to the US population.
+As for experiencing specific impediments to voting, the evidence was inconsistent:
+
+- Registration problems: no difference detected t = `r round(registration_problem_test$statistic, 2)`, p = `r round(registration_problem_test$p.value, 2)`
+- Identification problems: no difference detected t = `r round(id_problem_test$statistic, 2)`, p = `r round(id_problem_test$p.value, 2)`
+- Problem obtaining absentee ballot: statistically significant evidence detected, t = `r round(absentee_ballot_problem_test$statistic, 2)`, p = `r round(absentee_ballot_problem_test$p.value, 2)`
+
+Several limitations of our test affect the conclusions that may be drawn from it. As mentioned above, we are only able to measure association between experienced difficulties and political party, not causation. Additionally, the ANES data is not nationally representative, suggesting that our results may not generalize to the US population.
 
 # Discussion
 
-This study found evidence <...> Are we measuring propensity to vote or how reliable people from different parties are? We see a correlation here but it doesn't imply causation.
+This study found evidence of longer times for waiting at the polling place and traveling to the polling place for democratic than republican voters. Nonetheless, from practical point of view the difference in wait and travel times is relatively small (less than 6 minutes) and, probably, doesn't produce much effect on the democratic process.
 
-Our results may be of key interest to <...>.
+As for potential issues of voter suppression, we evaluated problems with registration, identification and problems requesting absentee ballots and only found some evidence of difference in absentee ballots problem. Despite that fact, the ratio of people experiencing this problem is very small (around 1%, see tables above) and thus, the results suggest that impediments to voting were not widespread.
+
+Our results may be of key interest to elected officials as they plan reforms in voting procedures. It's important to know that in our polarized time, Democrats and Republicans did not encounter significant voting difficulties.
