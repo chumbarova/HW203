@@ -211,7 +211,7 @@ cat(c("\\begin{table}[!htb]
 
 It's important to note that ANES includes information on self-reported difficulty voting in 2020 elections. As the difficulty of voting is subjective and can mean different things for each respondent we're not going to use it in this analysis. Another issue worth noting is that the "difficulty voting" data was gathered only for people who ended up voting so it's subject to "survivorship bias" which is another form of selection bias.
 
-To operationalize the concept of voter difficulty, we will analyse 2 categories of data separately. First we will compare wait times at the polls and travel times to the polling place between Democrats and Republicans. Then we will identify individuals in the dataset who experienced problems related to the democratic process: problems with registration, identification problems, problems obtaining absentee ballot. We will compare rates for each of these problems separately.
+To operationalize the concept of voter difficulty, we will analyse 2 categories of data separately. First we will compare wait times at the polls and travel times to the polling place between Democrats and Republicans. Then we will identify individuals in the dataset who experienced problems related to the democratic process: problems with registration, identification problems, problems obtaining absentee ballot. We will make Bonferroni adjustment to the rejection criteria to account for multiple tests.
 
 Above tables represent voting problems split by whether respondent successfully voted or did not vote. To improve accuracy and remove selection bias we will pool results together from both groups of people.
 
