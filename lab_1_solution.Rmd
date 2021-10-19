@@ -137,10 +137,7 @@ anes <- anes %>%
 ```
 
 # Importance and Context
-
-The issue of voter suppression is extremely important for the current stage of the democracy in the U.S. In this political climate, the ability to influence the voting turnout for voters of desired party might as well decide the results of election. That's why it's extremely important to prevent legislation that would discriminate against certain categories of population. 
-
-Experts debate that the voter suppression against historically marginalized groups in the U.S. is a common and widespread problem right now. Among others they determine following problems:
+As US political party ideologies become increasingly polarized and margins of elections become narrower, the issue of impediments to voting become paramount in the democratic process. Although not all impediments can be viewed as voter suppression (i.e. the intentional disenfranchisement of a group through extralegal means), voter suppression can take on many forms, such as follows:
 
 - voter registration problems
 - voter purging
@@ -148,16 +145,14 @@ Experts debate that the voter suppression against historically marginalized grou
 - confusing process
 - poll closures and long lines
 
-As a first step for addressing this concern, this analysis aims to address the following research question:
-
+To provide insight into potential voter suppression in the 2020 general election, our team addresses the following research question:
 \begin{quote}
   \textit{Did Democratic voters or Republican voters experience more difficulty voting in the 2020 election?}
 \end{quote}
-
-The answer to this question could provide insight into the severity of voter suppression problems and serve as a jumping start for further research. To help us better understand the experience of voting in the 2020 election for members of each party we will ask following sub-questions:
+The answer to this question could provide insight into the severity of voter suppression problems and serve as a starting point for further research. To help us better understand the experience of voting in the 2020 election for members of each party we will ask following sub-questions:
 
 - \textit{Did wait time at the poll and travel time to the polling place differ for Democratic and Republican voters?}
-- \textit{Is there any difference in rates of encountering impediments to voting between Democrats and Republicans?}
+- \textit{Did Democrats or Republicans encounter more impediments to voting?}
 
 # Data and Methodology
 
