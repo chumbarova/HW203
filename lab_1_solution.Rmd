@@ -1,6 +1,8 @@
 ---
 title: "Did Democratic voters or Republican voters experience more difficulty voting in the 2020 election?"
 author: 'Datasci 203: Lab 1'
+header-includes:
+- \usepackage{booktabs}
 output:
   bookdown::pdf_document2: 
     toc: false
@@ -57,10 +59,10 @@ anes <- raw_anes %>%
     voting_mailing_ballot_problem = V202120i == 1,
     voting_problem = case_when(
       V202120a == 1 ~ 'Registration problem',
-      V202120b == 1 ~ 'Concern about identification card',
-      V202120c == 1 ~ 'Difficulty obtaining absentee ballot',
-      V202120d == 1 ~ 'Confusion about ballot or machine',
-      V202120e == 1 ~ 'Difficulty getting to polling place',
+      V202120b == 1 ~ 'ID concern',
+      V202120c == 1 ~ 'Obtaining absentee ballot',
+      V202120d == 1 ~ 'Confusing ballot or machine',
+      V202120e == 1 ~ 'Transportation',
       V202120f == 1 ~ 'Long wait times',
       V202120g == 1 ~ 'Work schedule',
       V202120h == 1 ~ 'Bad weather',
@@ -79,16 +81,15 @@ anes <- raw_anes %>%
       V202123 == 3 ~ 'Too busy',
       V202123 == 4 ~ 'Did not like the candidates',
       V202123 == 5 ~ 'I am not registered',
-      V202123 == 6 ~ 'I did not have the correct form of identification',
+      V202123 == 6 ~ 'Incorrect identification',
       V202123 == 7 ~ 'Out of town',
       V202123 == 8 ~ 'Sick or disabled',
       V202123 == 9 ~ 'Transportation',
       V202123 == 10 ~ 'Bad weather',
-      V202123 == 11 ~ 'The line at the polls was too long',
-      V202123 == 12 ~ 'I was not allowed to vote at the polls, even though I tried',
-      V202123 == 13 ~ 'I requested but did not receive an absentee ballot',
-      V202123 == 14 ~ 'I did not know where to vote',
-      V202123 == 15 ~ 'I did not feel that I knew enough about the choices'
+      V202123 == 11 ~ 'Line too long',
+      V202123 == 12 ~ 'Not allowed to vote',
+      V202123 == 13 ~ 'Missing absentee ballot',
+      V202123 == 14 ~ 'Could not find polls'
     )
   )
 ```
@@ -168,10 +169,10 @@ dropout_table <- anes %$%
     prop.table(
       table(political_party, main_reason_not_vote)))
 
-kable(
+dropout_kable <- kable(
   100*dropout_table,
   digits = 2,
-  caption = 'Main reasons for not voting',
+  format = "latex",
   booktabs = TRUE
 )
 ```
@@ -182,14 +183,31 @@ voting_problem_table <- anes %$%
   t(
     prop.table(
       table(political_party, voting_problem)))
-kable(
+voting_problem_kable <- kable(
   100*voting_problem_table,
   digits = 2,
-  caption = 'Problems people encountered while voting',
+  format = "latex",
   booktabs = TRUE
 )
 ```
 
+```{r tables, results='asis', echo = FALSE}
+
+cat(c("\\begin{table}[!htb]
+    \\begin{minipage}{.5\\linewidth}
+      \\caption{Main reasons not voting}
+      \\centering",
+        dropout_kable,
+    "\\end{minipage}%
+    \\hspace{0.5cm}
+    \\begin{minipage}{.5\\linewidth}
+      \\centering
+        \\caption{Problems encountered while voting}",
+        voting_problem_kable,
+    "\\end{minipage} 
+\\end{table}"
+))  
+```
 
 It's important to note that ANES includes information on self-reported difficulty voting in 2020 elections. As the difficulty of voting is subjective and can mean different things for each respondent we're not going to use it in this analysis. Another issue worth noting is that the "difficulty voting" data was gathered only for people who ended up voting so it's subject to "survivorship bias" which is another form of selection bias.
 
