@@ -236,11 +236,7 @@ For each potential impediment to voting both our grouping variable and our outco
 
 \begin{quote}
 
-\textbf{Null Hypothesis 1:} \textit{The probability that a member of democratic party experienced difficulty registering in 2020 election is the same that of republican party.}
-
-\textbf{Null Hypothesis 2:} \textit{The probability that a member of democratic party experienced difficulty providing correct identification in 2020 election is the same that of republican party.}
-
-\textbf{Null Hypothesis 3:} \textit{The probability that a member of democratic party experienced difficulty obtaining absentee ballot in 2020 election is the same that of republican party.}
+\textbf{Null Hypotheses 1-3:} \textit{The probability that a member of democratic party experienced difficulty registering\textbackslash providing correct identification\textbackslash obtaining absentee ballot in 2020 election is the same that of republican party.}
 
 \end{quote}
 
@@ -280,9 +276,7 @@ To test differences in waiting and travel times we will use the beginning of the
 
 \begin{quote}
 
-\textbf{Null Hypothesis for waiting time:} \textit{A member of democratic party on average experiences the same waiting time at the polling place as a member of republican party.}
-
-\textbf{Null Hypothesis for traveling time:} \textit{A member of democratic party on average takes the same amount of time to travel to the polling place as a member of republican party.}
+\textbf{Null Hypothesis 4-5:} \textit{A member of democratic party on average experiences the same waiting time\textbackslash travel time to polls as a member of republican party.}
 
 \end{quote}
 
