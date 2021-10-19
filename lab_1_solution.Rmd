@@ -49,14 +49,6 @@ anes <- raw_anes %>%
       V202121 == 5 ~ 'more than 2 hours'
     ),
     difficulty_voting = V202119,
-    voting_registration_problem = V202120a == 1,
-    voting_id_problem = V202120b == 1,
-    voting_absentee_ballot_problem = V202120c == 1,
-    voting_confusion_problem = V202120d == 1,
-    voting_traveling_problem = V202120e == 1,
-    voting_wait_time_problem = V202120f == 1,
-    voting_work_schedule_problem = V202120g == 1,
-    voting_mailing_ballot_problem = V202120i == 1,
     voting_problem = case_when(
       V202120a == 1 ~ 'Registration problem',
       V202120b == 1 ~ 'ID concern',
@@ -70,11 +62,6 @@ anes <- raw_anes %>%
       V202120j == 1 ~ 'Other problem',
       V202120k == 1 ~ 'No problems at all'
     ),
-    dropout_registration_problem = V202123 == 5,
-    dropout_id_problem = V202123 == 6,
-    dropout_transportation_problem = V202123 == 9,
-    dropout_wait_time_problem = V202123 == 11,
-    dropout_absentee_ballot_problem = V202123 == 13,
     main_reason_not_vote = case_when(
       V202123 == 1 ~ 'I forgot',
       V202123 == 2 ~ 'I’m not interested',
@@ -125,9 +112,27 @@ anes <- anes %>%
       travel_time == '1 to 2 hours' ~ 60,
       travel_time == 'more than 2 hours' ~ 120
     ),
-    registration_problem = dropout_registration_problem | voting_registration_problem,
-    id_problem = dropout_id_problem | voting_id_problem,
-    absentee_ballot_problem = dropout_absentee_ballot_problem | voting_absentee_ballot_problem
+    had_problems = case_when(
+      voting_problem == 'Registration problem' ~ 1,
+      voting_problem == 'ID concern' ~ 1,
+      voting_problem == 'Obtaining absentee ballot' ~ 1,
+      voting_problem == 'Confusing ballot or machine' ~ 1,
+      voting_problem == 'Transportation' ~ 1,
+      voting_problem == 'Long wait times' ~ 1,
+      voting_problem == 'Work schedule' ~ 1,
+      voting_problem == 'Issue mailing ballot' ~ 1,
+      voting_problem == 'Other problem' ~ 1,
+      main_reason_not_vote == 'I am not registered' ~ 1,
+      main_reason_not_vote == 'Incorrect identification' ~ 1,
+      main_reason_not_vote == 'Out of town' ~ 1,
+      main_reason_not_vote == 'Sick or disabled' ~ 1,
+      main_reason_not_vote == 'Transportation' ~ 1,
+      main_reason_not_vote == 'Line too long' ~ 1,
+      main_reason_not_vote == 'Not allowed to vote' ~ 1,
+      main_reason_not_vote == 'Missing absentee ballot' ~ 1,
+      main_reason_not_vote == 'Could not find polls' ~ 1,
+      TRUE ~ 0
+    )
   )
 ```
 
@@ -215,11 +220,11 @@ To operationalize the concept of voter difficulty, we will analyse 2 categories 
 
 Above tables represent voting problems split by whether respondent successfully voted or did not vote. To improve accuracy and remove selection bias we will pool results together from both groups of people.
 
-For each potential impediment to voting both our grouping variable and our outcome variable are measured at the binary level.  In these circumstances, common tests could include a two-sample proportion test and Fischer's exact test. We proceed with a two-sample t-test to demonstrate tools used in Datasci 203. Given the large sample sizes, the loss of accuracy from the t-test will be negligible. The null hypotheses for the t-test can be expressed as follows:
+Both experiencing of potential impediment to voting and our grouping variable are measured at the binary level.  In these circumstances, common tests could include a two-sample proportion test and Fischer's exact test. We proceed with a two-sample t-test to demonstrate tools used in Datasci 203. Given the large sample sizes, the loss of accuracy from the t-test will be negligible. The null hypotheses for the t-test can be expressed as follows:
 
 \begin{quote}
 
-\textbf{Null Hypotheses 1-3:} \textit{The probability that a member of democratic party experienced difficulty registering\textbackslash providing correct identification\textbackslash obtaining absentee ballot in 2020 election is the same that of republican party.}
+\textbf{Null Hypotheses 1:} \textit{The probability that a member of democratic party experienced difficulty registering\textbackslash providing correct identification\textbackslash obtaining absentee ballot and other impediments to voting in 2020 election is the same that of republican party.}
 
 \end{quote}
 
@@ -230,7 +235,7 @@ wait_times_plot <- anes %>%
   geom_bar(aes(color = political_party, fill = political_party),
            position = "dodge",
            show.legend = FALSE) +
-  scale_color_manual(values = c("blue", "red"), guide = FALSE) +
+  scale_color_manual(values = c("blue", "red"), guide = "none") +
   scale_fill_manual(values = alpha(c("blue", "red"), .3)) +
   labs(
     x = 'Wait time at the polling place', 
@@ -244,7 +249,7 @@ travel_times_plot <- anes %>%
   ggplot(aes(x = travel_time_min)) +
   geom_bar(aes(color = political_party, fill = political_party),
            position = "dodge") +
-  scale_color_manual(values = c("blue", "red"), guide = FALSE) +
+  scale_color_manual(values = c("blue", "red"), guide = "none") +
   scale_fill_manual(values = alpha(c("blue", "red"), .3)) +
   theme(legend.title = element_blank()) +
   labs(
@@ -259,11 +264,11 @@ travel_times_plot <- anes %>%
 
 The left panel of Figure \@ref(fig:plots) plots amounts of respondents who reported waiting time within a given bracket. The right panel of Figure \@ref(fig:plots) shows similar data for travel time.
 
-To test differences in waiting and travel times we will use the beginning of the time bracket as the data point. Since it's metric data and due to large sample size we can ignore the distribution shape and apply two-sample t-test with following Null Hypotheses:
+To test differences in waiting and travel times we will use the beginning of the time bracket as the data point. Since it's metric data and due to large sample size we can ignore the distribution shape and apply two-sample t-test with following Null Hypothesis:
 
 \begin{quote}
 
-\textbf{Null Hypothesis 4-5:} \textit{A member of democratic party on average experiences the same waiting time\textbackslash travel time to polls as a member of republican party.}
+\textbf{Null Hypothesis 2:} \textit{A member of democratic party on average experiences the same waiting time\textbackslash travel time to polls as a member of republican party.}
 
 \end{quote}
 
@@ -280,27 +285,17 @@ The t-test requires the following assumptions to be true:
 
 # Results
 
-```{r tests, echo=TRUE} 
+```{r tests, echo=TRUE}
 wait_time_test <- t.test(wait_time_min ~ political_party, data = anes)
 
 travel_time_test <- t.test(travel_time_min ~ political_party, data = anes)
 
-registration_problem_test <- t.test(registration_problem ~ political_party,
-                                    data = anes)
-
-id_problem_test <- t.test(id_problem ~ political_party, data = anes)
-
-absentee_ballot_problem_test <- t.test(absentee_ballot_problem ~ political_party,
-                                       data = anes)
+had_problems_test <- t.test(had_problems ~ political_party, data = anes)
 ```
 
 The test yield evidence that Democrats experience longer wait times (Democrats = `r round(wait_time_test$estimate[1], 2)`, Republicans = `r round(wait_time_test$estimate[2], 2)`, t = `r round(wait_time_test$statistic, 2)`, p = `r wait_time_test$p.value`) and travel times (Democrats = `r round(travel_time_test$estimate[1], 2)`, Republicans = `r round(travel_time_test$estimate[2], 2)`, t = `r round(travel_time_test$statistic, 2)`, p = `r travel_time_test$p.value`) than Republicans.
 
-As for experiencing specific impediments to voting, the evidence was inconsistent:
-
-- Registration problems: no difference detected t = `r round(registration_problem_test$statistic, 2)`, p = `r round(registration_problem_test$p.value, 2)`
-- Identification problems: no difference detected t = `r round(id_problem_test$statistic, 2)`, p = `r round(id_problem_test$p.value, 2)`
-- Problem obtaining absentee ballot: statistically significant evidence detected, t = `r round(absentee_ballot_problem_test$statistic, 2)`, p = `r round(absentee_ballot_problem_test$p.value, 2)`
+As for experiencing impediments to voting, the evidence was not enough to reject the Null Hypothesis: t = `r round(had_problems_test$statistic, 2)`, p = `r round(had_problems_test$p.value, 2)`
 
 Several limitations of our test affect the conclusions that may be drawn from it. As mentioned above, we are only able to measure association between experienced difficulties and political party, not causation. Additionally, the ANES data is not nationally representative, suggesting that our results may not generalize to the US population.
 
