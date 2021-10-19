@@ -213,23 +213,6 @@ It's important to note that ANES includes information on self-reported difficult
 
 To operationalize the concept of voter difficulty, we will analyse 2 categories of data separately. First we will compare wait times at the polls and travel times to the polling place between Democrats and Republicans. Then we will identify individuals in the dataset who experienced problems related to the democratic process: problems with registration, identification problems, problems obtaining absentee ballot. We will compare rates for each of these problems separately.
 
-```{r summary-table, echo = FALSE}
-# summary_table <- anes %>%
-#   group_by(political_party) %>%
-#   summarise("Total sample size" = n(),
-#             "Registration problems" = sum(registration_problem),
-#             "Absentee ballot problems" = sum(absentee_ballot_problem),
-#             "Identification problems" =  sum(id_problem))
-# 
-# kable(
-#   t(summary_table),
-#   digits = 4,
-#   caption = 'Number of people reporting impediments to voting',
-#   booktabs = TRUE
-# )
-
-```
-
 Above tables represent voting problems split by whether respondent successfully voted or did not vote. To improve accuracy and remove selection bias we will pool results together from both groups of people.
 
 For each potential impediment to voting both our grouping variable and our outcome variable are measured at the binary level.  In these circumstances, common tests could include a two-sample proportion test and Fischer's exact test. We proceed with a two-sample t-test to demonstrate tools used in Datasci 203. Given the large sample sizes, the loss of accuracy from the t-test will be negligible. The null hypotheses for the t-test can be expressed as follows:
@@ -244,12 +227,14 @@ For each potential impediment to voting both our grouping variable and our outco
 wait_times_plot <- anes %>%
   filter(!is.na(wait_time_min)) %>%
   ggplot(aes(x = wait_time_min)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("blue", "red")) +
+  geom_bar(aes(color = political_party, fill = political_party),
+           position = "dodge",
+           show.legend = FALSE) +
+  scale_color_manual(values = c("blue", "red"), guide = FALSE) +
+  scale_fill_manual(values = alpha(c("blue", "red"), .3)) +
   labs(
     x = 'Wait time at the polling place', 
-    y = 'Count',
+    y = 'Number of voters',
     color = 'Political party')
 ```
 
@@ -257,12 +242,14 @@ wait_times_plot <- anes %>%
 travel_times_plot <- anes %>%
   filter(!is.na(travel_time_min)) %>%
   ggplot(aes(x = travel_time_min)) +
-  geom_bar(aes(color = political_party), fill = "white",
-                position = "dodge") +
-  scale_color_manual(values = c("blue", "red")) +
+  geom_bar(aes(color = political_party, fill = political_party),
+           position = "dodge") +
+  scale_color_manual(values = c("blue", "red"), guide = FALSE) +
+  scale_fill_manual(values = alpha(c("blue", "red"), .3)) +
+  theme(legend.title = element_blank()) +
   labs(
     x = 'Travel time to the polling place', 
-    y = 'Count',
+    y = 'Number of voters',
     color = 'Political party')
 ```
 
