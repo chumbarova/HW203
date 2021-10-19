@@ -152,11 +152,11 @@ As a first step for addressing this concern, this analysis aims to address the f
 The answer to this question could provide insight into the severity of voter suppression problems and serve as a jumping start for further research. To help us better understand the experience of voting in the 2020 election for members of each party we will ask following sub-questions:
 
 - \textit{Did wait time at the poll and travel time to the polling place differ for Democratic and Republican voters?}
-- \textit{Is there any difference in rates of encountering specific impediments to voting between Democrats and Republicans?}
+- \textit{Is there any difference in rates of encountering impediments to voting between Democrats and Republicans?}
 
 # Data and Methodology
 
-Our analysis leverages data from the 2018 American National Election Studies (ANES).  This is an observational dataset, based on a sample of respondents drawn from the YouGov platform. The Yougov panel is not nationally representative, and consists of participants who sign up to complete questionnaires in exchange for rewards. This dataset includes `r nrow_original` individuals.
+Our analysis leverages data from the 2018 American National Election Studies (ANES).  This is an observational dataset, based on a sample of respondents drawn from the YouGov platform. The Yougov panel is not nationally representative, and consists of participants who sign up to complete questionnaires in exchange for rewards. This dataset includes `r nrow_original` individuals. As we're only interested in comparing data for Democrats and Republicans, we're filtering out Independents and N/A values leaving `r nrow_valid` respondents.
 
 The survey includes questions about problems that respondents experienced while
 voting during 2020 election including: registration problems, long wait lines etc.
