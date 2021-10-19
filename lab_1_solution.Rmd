@@ -303,6 +303,6 @@ Several limitations of our test affect the conclusions that may be drawn from it
 
 This study found evidence of longer times for waiting at the polling place and traveling to the polling place for democratic than republican voters. Nonetheless, from practical point of view the difference in wait and travel times is relatively small (less than 6 minutes) and, probably, doesn't produce much effect on the democratic process.
 
-As for potential issues of voter suppression, we evaluated problems with registration, identification and problems requesting absentee ballots and only found some evidence of difference in absentee ballots problem. Despite that fact, the ratio of people experiencing this problem is very small (around 1%, see tables above) and thus, the results suggest that impediments to voting were not widespread.
+As for potential issues of voter suppression, we evaluated how many Democrats and Republicans experienced problems with registration, identification, problems requesting absentee ballots etc. and did not find sufficient evidence to claim any difference. Additionally, the ratio of people experiencing these problems is very small (around 1%, see tables above) and thus, the results suggest that impediments to voting were not widespread.
 
 Our results may be of key interest to elected officials as they plan reforms in voting procedures. It's important to know that in our polarized time, Democrats and Republicans did not encounter significant voting difficulties.
